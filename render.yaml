@@ -1,0 +1,42 @@
+services:
+  # Backend API Service
+  - type: web
+    name: legal-ai-assistant
+    runtime: python
+    region: oregon
+    plan: free
+    branch: main
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: legal-ai-db
+          property: connectionString
+      - key: REDIS_URL
+        value: ""  # Optional, not used
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ALGORITHM
+        value: HS256
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: 30
+      - key: ANTHROPIC_API_KEY
+        sync: false  # You'll need to set this manually in Render dashboard
+      - key: ANTHROPIC_BASE_URL
+        value: https://api.anthropic.com
+      - key: APP_NAME
+        value: Legal AI Assistant
+      - key: DEBUG
+        value: false
+      - key: BACKEND_CORS_ORIGINS
+        value: '["https://hacker4257.github.io"]'
+    healthCheckPath: /health
+
+databases:
+  - name: legal-ai-db
+    databaseName: legal_ai_assistant
+    user: legal_ai_user
+    plan: free
+    region: oregon

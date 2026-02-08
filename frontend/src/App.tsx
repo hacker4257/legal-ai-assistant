@@ -7,6 +7,7 @@ import Home from './pages/Home';
 import CaseDetail from './pages/CaseDetail';
 import UploadCase from './pages/UploadCase';
 import MyFavorites from './pages/MyFavorites';
+import ErrorBoundary from './components/ErrorBoundary';
 import { useAuthStore } from './store/authStore';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -16,45 +17,47 @@ const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 
 const App: React.FC = () => {
   return (
-    <ConfigProvider locale={zhCN}>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route
-            path="/"
-            element={
-              <PrivateRoute>
-                <Home />
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/upload"
-            element={
-              <PrivateRoute>
-                <UploadCase />
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/favorites"
-            element={
-              <PrivateRoute>
-                <MyFavorites />
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/case/:id"
-            element={
-              <PrivateRoute>
-                <CaseDetail />
-              </PrivateRoute>
-            }
-          />
-        </Routes>
-      </BrowserRouter>
-    </ConfigProvider>
+    <ErrorBoundary>
+      <ConfigProvider locale={zhCN}>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route
+              path="/"
+              element={
+                <PrivateRoute>
+                  <Home />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/upload"
+              element={
+                <PrivateRoute>
+                  <UploadCase />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/favorites"
+              element={
+                <PrivateRoute>
+                  <MyFavorites />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/case/:id"
+              element={
+                <PrivateRoute>
+                  <CaseDetail />
+                </PrivateRoute>
+              }
+            />
+          </Routes>
+        </BrowserRouter>
+      </ConfigProvider>
+    </ErrorBoundary>
   );
 };
 

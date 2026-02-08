@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { Layout, Card, List, Button, Typography, Space, Tag, message, Empty } from 'antd';
-import { ArrowLeftOutlined, SafetyOutlined } from '@ant-design/icons';
+import { Layout, Card, List, Button, Typography, Space, Tag, message } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { favoritesAPI, casesAPI } from '../api';
-import ScaleIcon from '../components/ScaleIcon';
+import PageHeader from '../components/PageHeader';
+import Loading from '../components/Loading';
+import EmptyState from '../components/EmptyState';
 
-const { Header, Content } = Layout;
+const { Content } = Layout;
 const { Title } = Typography;
 
 interface Favorite {

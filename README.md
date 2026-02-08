@@ -6,6 +6,13 @@
 ![Python](https://img.shields.io/badge/python-3.11-blue.svg)
 ![React](https://img.shields.io/badge/react-18.2-blue.svg)
 
+## 🌐 在线体验
+
+- **前端演示**: https://hacker4257.github.io/legal-ai-assistant/
+- **后端 API**: https://legal-ai-assistant.onrender.com/docs
+
+> 注意：后端使用 Render 免费层，首次访问可能需要 30-60 秒唤醒服务。
+
 ## ✨ 核心特性
 
 ### 🎯 双视角 AI 分析
@@ -52,6 +59,21 @@
 **部署：**
 - Docker
 - Docker Compose
+- GitHub Actions (CI/CD)
+- GitHub Pages (前端)
+- Render (后端)
+
+## 🚀 部署指南
+
+详细的部署步骤请查看 [DEPLOYMENT.md](./DEPLOYMENT.md)。
+
+### 快速部署
+
+1. **Fork 本仓库**
+2. **启用 GitHub Pages**（Settings → Pages → Source: GitHub Actions）
+3. **在 Render 创建服务**（使用 `render.yaml` 一键部署）
+4. **设置环境变量**（主要是 `ANTHROPIC_API_KEY`）
+5. **推送代码触发自动部署**
 
 ## 快速开始
 
