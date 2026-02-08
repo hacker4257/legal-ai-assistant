@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Layout, Card, Button, Descriptions, Typography, Space, Spin, message, Divider, Collapse, Tag, Alert, Segmented, Dropdown, Input, Modal, List } from 'antd';
-import { ArrowLeftOutlined, ThunderboltOutlined, FileTextOutlined, TeamOutlined, BankOutlined, CheckCircleOutlined, UserOutlined, SafetyOutlined, DownloadOutlined, StarOutlined, StarFilled, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { Layout, Card, Button, Descriptions, Typography, Space, message, Collapse, Tag, Alert, Segmented, Dropdown, Input, Modal, List } from 'antd';
+import { ArrowLeftOutlined, ThunderboltOutlined, FileTextOutlined, TeamOutlined, BankOutlined, CheckCircleOutlined, UserOutlined, DownloadOutlined, StarOutlined, StarFilled, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import ReactMarkdown from 'react-markdown';
 import { casesAPI, favoritesAPI } from '../api';
 import ScaleIcon from '../components/ScaleIcon';
+import PageHeader from '../components/PageHeader';
+import Loading from '../components/Loading';
 
-const { Header, Content } = Layout;
+const { Content } = Layout;
 const { Title, Paragraph, Text } = Typography;
 const { Panel } = Collapse;
 
@@ -212,11 +214,7 @@ const CaseDetail: React.FC = () => {
   };
 
   if (loading) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
-        <Spin size="large" />
-      </div>
-    );
+    return <Loading fullscreen tip="加载案例详情..." />;
   }
 
   if (!caseData) {
@@ -225,36 +223,15 @@ const CaseDetail: React.FC = () => {
 
   return (
     <Layout style={{ minHeight: '100vh', background: '#f0f2f5' }}>
-      <Header style={{ background: '#fff', padding: '0 50px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', position: 'sticky', top: 0, zIndex: 1 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{
-              width: 40,
-              height: 40,
-              borderRadius: 10,
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)'
-            }}>
-              <ScaleIcon style={{ fontSize: 24, color: '#fff' }} />
-            </div>
-            <Title level={3} style={{
-              margin: 0,
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              fontWeight: 600
-            }}>
-              法律 AI 助手
-            </Title>
-          </div>
+      <PageHeader
+        title="法律 AI 助手"
+        showBackButton
+        extra={
           <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/')}>
             返回
           </Button>
-        </div>
-      </Header>
+        }
+      />
 
       <Content style={{ padding: '24px 50px', maxWidth: '100%', width: '100%' }}>
         <div style={{ maxWidth: 1400, margin: '0 auto', width: '100%' }}>

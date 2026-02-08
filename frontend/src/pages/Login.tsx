@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { Form, Input, Button, Card, message, Tabs, Typography, Space } from 'antd';
-import { UserOutlined, LockOutlined, MailOutlined, SafetyOutlined } from '@ant-design/icons';
+import { UserOutlined, LockOutlined, MailOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { authAPI } from '../api';
 import { useAuthStore } from '../store/authStore';
 import ScaleIcon from '../components/ScaleIcon';
+import theme from '../styles/theme';
 
 const { Title } = Typography;
 
@@ -54,30 +55,27 @@ const Login: React.FC = () => {
       justifyContent: 'center',
       alignItems: 'center',
       minHeight: '100vh',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+      background: theme.colors.gradient
     }}>
-      <Card style={{ width: 400, borderRadius: 16 }}>
-        <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+      <Card style={{ width: 400, borderRadius: theme.borderRadius.xlarge }}>
+        <div style={{ textAlign: 'center', marginBottom: theme.spacing.xl }}>
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: theme.spacing.sm, marginBottom: theme.spacing.md }}>
             <div style={{
               width: 50,
               height: 50,
-              borderRadius: 12,
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              borderRadius: theme.borderRadius.large,
+              background: theme.colors.gradient,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)'
+              boxShadow: theme.shadows.button
             }}>
               <ScaleIcon style={{ fontSize: 28, color: '#fff' }} />
             </div>
           </div>
           <Title level={3} style={{
             margin: 0,
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            fontWeight: 600
+            ...theme.title
           }}>
             法律 AI 助手
           </Title>

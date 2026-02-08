@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { Layout, Input, Button, Card, List, Typography, Space, Tag, message, Row, Col } from 'antd';
-import { SearchOutlined, UploadOutlined, StarOutlined, ThunderboltOutlined, FileTextOutlined, SafetyOutlined } from '@ant-design/icons';
+import { SearchOutlined, UploadOutlined, StarOutlined, ThunderboltOutlined, FileTextOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { casesAPI } from '../api';
 import ScaleIcon from '../components/ScaleIcon';
+import EmptyState from '../components/EmptyState';
+import theme from '../styles/theme';
 
 const { Header, Content, Footer } = Layout;
 const { Title, Paragraph, Text } = Typography;
@@ -46,33 +48,30 @@ const Home: React.FC = () => {
   };
 
   return (
-    <Layout style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
+    <Layout style={{ minHeight: '100vh', background: theme.colors.gradient }}>
       <Header style={{
         background: 'rgba(255, 255, 255, 0.95)',
         padding: '0 50px',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+        boxShadow: theme.shadows.header,
         backdropFilter: 'blur(10px)'
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing.sm }}>
             <div style={{
-              width: 40,
-              height: 40,
-              borderRadius: 10,
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              width: theme.logo.size,
+              height: theme.logo.size,
+              borderRadius: theme.logo.borderRadius,
+              background: theme.logo.background,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)'
+              boxShadow: theme.logo.boxShadow
             }}>
-              <ScaleIcon style={{ fontSize: 24, color: '#fff' }} />
+              <ScaleIcon style={{ fontSize: theme.logo.fontSize, color: '#fff' }} />
             </div>
             <Title level={3} style={{
               margin: 0,
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              fontWeight: 600
+              ...theme.title
             }}>
               法律 AI 助手
             </Title>
@@ -83,9 +82,9 @@ const Home: React.FC = () => {
               icon={<UploadOutlined />}
               onClick={() => navigate('/upload')}
               style={{
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                background: theme.colors.gradient,
                 border: 'none',
-                borderRadius: 8
+                borderRadius: theme.borderRadius.medium
               }}
             >
               上传文书
@@ -93,11 +92,11 @@ const Home: React.FC = () => {
             <Button
               icon={<StarOutlined />}
               onClick={() => navigate('/favorites')}
-              style={{ borderRadius: 8 }}
+              style={{ borderRadius: theme.borderRadius.medium }}
             >
               我的收藏
             </Button>
-            <Button onClick={() => navigate('/login')} style={{ borderRadius: 8 }}>退出</Button>
+            <Button onClick={() => navigate('/login')} style={{ borderRadius: theme.borderRadius.medium }}>退出</Button>
           </Space>
         </div>
       </Header>
@@ -218,7 +217,7 @@ const Home: React.FC = () => {
                 style={{ borderRadius: 8 }}
               />
 
-              {total > 0 && (
+              {total > 0 ? (
                 <div>
                   <Title level={4}>搜索结果（共 {total} 条）</Title>
                   <List
@@ -296,6 +295,11 @@ const Home: React.FC = () => {
                     )}
                   />
                 </div>
+              ) : cases.length === 0 && !loading && (
+                <EmptyState
+                  type="search"
+                  description="输入关键词开始搜索案例"
+                />
               )}
             </Space>
           </Card>
