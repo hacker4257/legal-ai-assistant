@@ -69,47 +69,35 @@ const MyFavorites: React.FC = () => {
     }
   };
 
+  if (loading) {
+    return (
+      <Layout style={{ minHeight: '100vh' }}>
+        <PageHeader title="我的收藏" showBackButton />
+        <Content style={{ padding: '50px' }}>
+          <Loading tip="加载收藏列表..." />
+        </Content>
+      </Layout>
+    );
+  }
+
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      <Header style={{ background: '#fff', padding: '0 50px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{
-              width: 40,
-              height: 40,
-              borderRadius: 10,
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)'
-            }}>
-              <ScaleIcon style={{ fontSize: 24, color: '#fff' }} />
-            </div>
-            <Title level={3} style={{
-              margin: 0,
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              fontWeight: 600
-            }}>
-              我的收藏
-            </Title>
-          </div>
-          <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/')}>
-            返回首页
-          </Button>
-        </div>
-      </Header>
+      <PageHeader title="我的收藏" showBackButton />
 
       <Content style={{ padding: '50px' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-          <Card>
-            {favorites.length === 0 && !loading ? (
-              <Empty description="还没有收藏任何案例" />
-            ) : (
+          {favorites.length === 0 ? (
+            <EmptyState
+              type="data"
+              description="还没有收藏任何案例"
+              action={{
+                text: '去搜索案例',
+                onClick: () => navigate('/'),
+              }}
+            />
+          ) : (
+            <Card>
               <List
-                loading={loading}
                 dataSource={favorites}
                 renderItem={(item) => {
                   const caseInfo = casesMap.get(item.case_id);
@@ -156,8 +144,8 @@ const MyFavorites: React.FC = () => {
                   );
                 }}
               />
-            )}
-          </Card>
+            </Card>
+          )}
         </div>
       </Content>
     </Layout>
