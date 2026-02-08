@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Layout, Input, Button, Card, List, Typography, Space, Tag, message } from 'antd';
-import { SearchOutlined, UploadOutlined, StarOutlined } from '@ant-design/icons';
+import { Layout, Input, Button, Card, List, Typography, Space, Tag, message, Row, Col } from 'antd';
+import { SearchOutlined, UploadOutlined, StarOutlined, ThunderboltOutlined, FileTextOutlined, SafetyOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { casesAPI } from '../api';
+import ScaleIcon from '../components/ScaleIcon';
 
-const { Header, Content } = Layout;
-const { Title, Paragraph } = Typography;
+const { Header, Content, Footer } = Layout;
+const { Title, Paragraph, Text } = Typography;
 const { Search } = Input;
 
 interface Case {
@@ -45,46 +46,176 @@ const Home: React.FC = () => {
   };
 
   return (
-    <Layout style={{ minHeight: '100vh' }}>
-      <Header style={{ background: '#fff', padding: '0 50px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+    <Layout style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
+      <Header style={{
+        background: 'rgba(255, 255, 255, 0.95)',
+        padding: '0 50px',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+        backdropFilter: 'blur(10px)'
+      }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Title level={3} style={{ margin: 0 }}>法律 AI 助手</Title>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{
+              width: 40,
+              height: 40,
+              borderRadius: 10,
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)'
+            }}>
+              <ScaleIcon style={{ fontSize: 24, color: '#fff' }} />
+            </div>
+            <Title level={3} style={{
+              margin: 0,
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              fontWeight: 600
+            }}>
+              法律 AI 助手
+            </Title>
+          </div>
           <Space>
             <Button
               type="primary"
               icon={<UploadOutlined />}
               onClick={() => navigate('/upload')}
+              style={{
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                border: 'none',
+                borderRadius: 8
+              }}
             >
               上传文书
             </Button>
             <Button
               icon={<StarOutlined />}
               onClick={() => navigate('/favorites')}
+              style={{ borderRadius: 8 }}
             >
               我的收藏
             </Button>
-            <Button onClick={() => navigate('/login')}>退出</Button>
+            <Button onClick={() => navigate('/login')} style={{ borderRadius: 8 }}>退出</Button>
           </Space>
         </div>
       </Header>
 
-      <Content style={{ padding: '50px' }}>
+      <Content style={{ padding: '60px 50px' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-          <Card>
+          {/* Hero Section */}
+          {cases.length === 0 && (
+            <div style={{ textAlign: 'center', marginBottom: 60 }}>
+              <Title level={1} style={{ color: '#fff', fontSize: 48, marginBottom: 16 }}>
+                让法律判决书人人都能看懂
+              </Title>
+              <Paragraph style={{ color: 'rgba(255,255,255,0.9)', fontSize: 18, marginBottom: 40 }}>
+                AI 双视角分析 · 专业版 + 普通人版 · 智能解读法律文书
+              </Paragraph>
+
+              {/* Feature Cards */}
+              <Row gutter={[24, 24]} style={{ marginBottom: 40 }}>
+                <Col xs={24} sm={12} md={6}>
+                  <Card
+                    style={{
+                      borderRadius: 16,
+                      background: 'rgba(255,255,255,0.95)',
+                      border: 'none',
+                      boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
+                    }}
+                    bodyStyle={{ textAlign: 'center', padding: 24 }}
+                  >
+                    <ThunderboltOutlined style={{ fontSize: 40, color: '#667eea', marginBottom: 12 }} />
+                    <Title level={4}>AI 智能分析</Title>
+                    <Text type="secondary">双视角解读判决书</Text>
+                  </Card>
+                </Col>
+                <Col xs={24} sm={12} md={6}>
+                  <Card
+                    style={{
+                      borderRadius: 16,
+                      background: 'rgba(255,255,255,0.95)',
+                      border: 'none',
+                      boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
+                    }}
+                    bodyStyle={{ textAlign: 'center', padding: 24 }}
+                  >
+                    <FileTextOutlined style={{ fontSize: 40, color: '#667eea', marginBottom: 12 }} />
+                    <Title level={4}>PDF 导入导出</Title>
+                    <Text type="secondary">上传文书，导出报告</Text>
+                  </Card>
+                </Col>
+                <Col xs={24} sm={12} md={6}>
+                  <Card
+                    style={{
+                      borderRadius: 16,
+                      background: 'rgba(255,255,255,0.95)',
+                      border: 'none',
+                      boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
+                    }}
+                    bodyStyle={{ textAlign: 'center', padding: 24 }}
+                  >
+                    <StarOutlined style={{ fontSize: 40, color: '#667eea', marginBottom: 12 }} />
+                    <Title level={4}>收藏笔记</Title>
+                    <Text type="secondary">记录个人想法</Text>
+                  </Card>
+                </Col>
+                <Col xs={24} sm={12} md={6}>
+                  <Card
+                    style={{
+                      borderRadius: 16,
+                      background: 'rgba(255,255,255,0.95)',
+                      border: 'none',
+                      boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
+                    }}
+                    bodyStyle={{ textAlign: 'center', padding: 24 }}
+                  >
+                    <ScaleIcon style={{ fontSize: 40, color: '#667eea', marginBottom: 12 }} />
+                    <Title level={4}>真实案例</Title>
+                    <Text type="secondary">最高法公报案例</Text>
+                  </Card>
+                </Col>
+              </Row>
+            </div>
+          )}
+
+          {/* Search Box */}
+          <Card
+            style={{
+              borderRadius: 16,
+              marginBottom: 24,
+              background: 'rgba(255,255,255,0.95)',
+              border: 'none',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.1)'
+            }}
+          >
             <Space direction="vertical" size="large" style={{ width: '100%' }}>
               <div style={{ textAlign: 'center' }}>
-                <Title level={2}>智能案例检索</Title>
+                <Title level={2} style={{ marginBottom: 8 }}>智能案例检索</Title>
                 <Paragraph type="secondary">
                   输入关键词，快速查找相关法律案例
                 </Paragraph>
               </div>
 
               <Search
-                placeholder="例如：劳动合同纠纷、交通事故赔偿..."
-                enterButton={<><SearchOutlined /> 搜索</>}
+                placeholder="例如：劳动合同纠纷、交通事故赔偿、离婚财产分割..."
+                enterButton={
+                  <Button
+                    type="primary"
+                    icon={<SearchOutlined />}
+                    style={{
+                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                      border: 'none'
+                    }}
+                  >
+                    搜索
+                  </Button>
+                }
                 size="large"
                 onSearch={onSearch}
                 loading={loading}
+                style={{ borderRadius: 8 }}
               />
 
               {total > 0 && (
@@ -95,33 +226,66 @@ const Home: React.FC = () => {
                     renderItem={(item) => (
                       <List.Item
                         key={item.id}
+                        style={{
+                          background: '#fff',
+                          borderRadius: 12,
+                          marginBottom: 16,
+                          padding: 20,
+                          border: '1px solid #f0f0f0',
+                          cursor: 'pointer',
+                          transition: 'all 0.3s'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.15)';
+                          e.currentTarget.style.borderColor = '#667eea';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.boxShadow = 'none';
+                          e.currentTarget.style.borderColor = '#f0f0f0';
+                        }}
+                        onClick={() => navigate(`/case/${item.id}`)}
                         actions={[
-                          <Button type="link" onClick={() => navigate(`/case/${item.id}`)}>
-                            查看详情
+                          <Button
+                            type="link"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/case/${item.id}`);
+                            }}
+                            style={{ color: '#667eea' }}
+                          >
+                            查看详情 →
                           </Button>
                         ]}
                       >
                         <List.Item.Meta
                           title={
                             <Space>
-                              <a onClick={() => navigate(`/case/${item.id}`)}>{item.title}</a>
+                              <a
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigate(`/case/${item.id}`);
+                                }}
+                                style={{ fontSize: 16, fontWeight: 500 }}
+                              >
+                                {item.title}
+                              </a>
                               {item.is_real === 'real' && (
-                                <Tag color="green">真实案例</Tag>
+                                <Tag color="green" style={{ borderRadius: 4 }}>真实案例</Tag>
                               )}
                               {item.is_real === 'example' && (
-                                <Tag color="orange">教学示例</Tag>
+                                <Tag color="orange" style={{ borderRadius: 4 }}>教学示例</Tag>
                               )}
                             </Space>
                           }
                           description={
-                            <Space direction="vertical" size="small">
-                              <Space>
-                                <Tag color="blue">{item.case_type}</Tag>
-                                <Tag>{item.court}</Tag>
-                                <span>{item.judgment_date}</span>
+                            <Space direction="vertical" size="small" style={{ marginTop: 8 }}>
+                              <Space wrap>
+                                <Tag color="blue" style={{ borderRadius: 4 }}>{item.case_type}</Tag>
+                                <Tag style={{ borderRadius: 4 }}>{item.court}</Tag>
+                                <span style={{ color: '#999' }}>{item.judgment_date}</span>
                               </Space>
                               {item.source && (
-                                <span style={{ fontSize: '12px', color: '#8c8c8c' }}>
+                                <span style={{ fontSize: 12, color: '#8c8c8c' }}>
                                   来源：{item.source}
                                 </span>
                               )}
@@ -137,6 +301,17 @@ const Home: React.FC = () => {
           </Card>
         </div>
       </Content>
+
+      <Footer style={{ textAlign: 'center', background: 'transparent', color: 'rgba(255,255,255,0.8)' }}>
+        <Space direction="vertical" size="small">
+          <Text style={{ color: 'rgba(255,255,255,0.9)' }}>
+            法律 AI 助手 © 2026 - 让法律判决书人人都能看懂
+          </Text>
+          <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12 }}>
+            本系统提供的 AI 分析仅供参考，不构成法律意见
+          </Text>
+        </Space>
+      </Footer>
     </Layout>
   );
 };

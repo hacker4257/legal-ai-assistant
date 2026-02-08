@@ -4,6 +4,7 @@ import { Layout, Card, Button, Descriptions, Typography, Space, Spin, message, D
 import { ArrowLeftOutlined, ThunderboltOutlined, FileTextOutlined, TeamOutlined, BankOutlined, CheckCircleOutlined, UserOutlined, SafetyOutlined, DownloadOutlined, StarOutlined, StarFilled, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import ReactMarkdown from 'react-markdown';
 import { casesAPI, favoritesAPI } from '../api';
+import ScaleIcon from '../components/ScaleIcon';
 
 const { Header, Content } = Layout;
 const { Title, Paragraph, Text } = Typography;
@@ -226,7 +227,29 @@ const CaseDetail: React.FC = () => {
     <Layout style={{ minHeight: '100vh', background: '#f0f2f5' }}>
       <Header style={{ background: '#fff', padding: '0 50px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', position: 'sticky', top: 0, zIndex: 1 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Title level={3} style={{ margin: 0 }}>法律 AI 助手</Title>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{
+              width: 40,
+              height: 40,
+              borderRadius: 10,
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)'
+            }}>
+              <ScaleIcon style={{ fontSize: 24, color: '#fff' }} />
+            </div>
+            <Title level={3} style={{
+              margin: 0,
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              fontWeight: 600
+            }}>
+              法律 AI 助手
+            </Title>
+          </div>
           <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/')}>
             返回
           </Button>
@@ -337,7 +360,7 @@ const CaseDetail: React.FC = () => {
                         {
                           label: (
                             <Space>
-                              <SafetyOutlined />
+                              <ScaleIcon />
                               <span style={{ fontWeight: 500 }}>专业视角</span>
                             </Space>
                           ),
@@ -463,53 +486,69 @@ const CaseDetail: React.FC = () => {
                     </Collapse>
 
                     {/* 法律依据 */}
-                    <Card
-                      size="small"
-                      title={
-                        <Space>
-                          <CheckCircleOutlined />
-                          <span>{viewMode === 'plain' ? '相关法律规定' : '法律依据'}</span>
-                        </Space>
-                      }
-                      style={{ background: '#fff' }}
+                    <Collapse
+                      defaultActiveKey={['legal_basis']}
+                      style={{ background: '#fff', borderRadius: 8 }}
                     >
-                      <Space direction="vertical" size="small" style={{ width: '100%' }}>
-                        {(viewMode === 'plain' && analysis.legal_basis_plain
-                          ? analysis.legal_basis_plain
-                          : analysis.legal_basis
-                        ).map((basis, index) => (
-                          <Card
-                            key={index}
-                            size="small"
-                            style={{
-                              background: viewMode === 'plain' ? '#fff7e6' : '#f0f5ff',
-                              borderLeft: `3px solid ${viewMode === 'plain' ? '#fa8c16' : '#1890ff'}`,
-                              marginBottom: 8
-                            }}
-                          >
-                            <Space align="start" style={{ width: '100%' }}>
-                              <Tag color={viewMode === 'plain' ? 'orange' : 'blue'}>{index + 1}</Tag>
-                              <div style={{ flex: 1 }}>
-                                <Text style={{ fontSize: '14px', lineHeight: '1.8', whiteSpace: 'pre-wrap' }}>
-                                  {basis}
-                                </Text>
-                              </div>
-                            </Space>
-                          </Card>
-                        ))}
-                      </Space>
-                    </Card>
+                      <Panel
+                        header={
+                          <Space>
+                            <CheckCircleOutlined />
+                            <span style={{ fontWeight: 500 }}>
+                              {viewMode === 'plain' ? '相关法律规定' : '法律依据'}
+                            </span>
+                          </Space>
+                        }
+                        key="legal_basis"
+                      >
+                        <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                          {(viewMode === 'plain' && analysis.legal_basis_plain
+                            ? analysis.legal_basis_plain
+                            : analysis.legal_basis
+                          ).map((basis, index) => (
+                            <Card
+                              key={index}
+                              size="small"
+                              style={{
+                                background: viewMode === 'plain' ? '#fff7e6' : '#f0f5ff',
+                                borderLeft: `3px solid ${viewMode === 'plain' ? '#fa8c16' : '#1890ff'}`,
+                                marginBottom: 8
+                              }}
+                            >
+                              <Space align="start" style={{ width: '100%' }}>
+                                <Tag color={viewMode === 'plain' ? 'orange' : 'blue'}>{index + 1}</Tag>
+                                <div style={{ flex: 1 }}>
+                                  <Text style={{ fontSize: '14px', lineHeight: '1.8', whiteSpace: 'pre-wrap' }}>
+                                    {basis}
+                                  </Text>
+                                </div>
+                              </Space>
+                            </Card>
+                          ))}
+                        </Space>
+                      </Panel>
+                    </Collapse>
 
                     {/* 裁判结果 */}
                     {(viewMode === 'plain' ? analysis.judgment_result_plain : analysis.judgment_result) && (
                       <Alert
                         message={viewMode === 'plain' ? '最终结果' : '裁判结果'}
                         description={
-                          <Text style={{ fontSize: '15px', lineHeight: '1.8', whiteSpace: 'pre-wrap' }}>
-                            {viewMode === 'plain' && analysis.judgment_result_plain
-                              ? analysis.judgment_result_plain
-                              : analysis.judgment_result}
-                          </Text>
+                          <div style={{ fontSize: '15px', lineHeight: '1.8' }}>
+                            <ReactMarkdown
+                              components={{
+                                p: ({node, ...props}) => <p style={{ marginBottom: '12px' }} {...props} />,
+                                strong: ({node, ...props}) => <strong style={{ color: '#d46b08', fontWeight: 600 }} {...props} />,
+                                ol: ({node, ...props}) => <ol style={{ paddingLeft: '20px', marginBottom: '12px' }} {...props} />,
+                                ul: ({node, ...props}) => <ul style={{ paddingLeft: '20px', marginBottom: '12px' }} {...props} />,
+                                li: ({node, ...props}) => <li style={{ marginBottom: '8px' }} {...props} />,
+                              }}
+                            >
+                              {viewMode === 'plain' && analysis.judgment_result_plain
+                                ? analysis.judgment_result_plain
+                                : analysis.judgment_result}
+                            </ReactMarkdown>
+                          </div>
                         }
                         type="success"
                         showIcon

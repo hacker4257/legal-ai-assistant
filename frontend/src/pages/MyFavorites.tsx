@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Layout, Card, List, Button, Typography, Space, Tag, message, Empty } from 'antd';
-import { ArrowLeftOutlined, StarFilled } from '@ant-design/icons';
+import { ArrowLeftOutlined, SafetyOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { favoritesAPI, casesAPI } from '../api';
+import ScaleIcon from '../components/ScaleIcon';
 
 const { Header, Content } = Layout;
 const { Title } = Typography;
@@ -71,10 +72,29 @@ const MyFavorites: React.FC = () => {
     <Layout style={{ minHeight: '100vh' }}>
       <Header style={{ background: '#fff', padding: '0 50px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Title level={3} style={{ margin: 0 }}>
-            <StarFilled style={{ color: '#faad14', marginRight: 8 }} />
-            我的收藏
-          </Title>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{
+              width: 40,
+              height: 40,
+              borderRadius: 10,
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)'
+            }}>
+              <ScaleIcon style={{ fontSize: 24, color: '#fff' }} />
+            </div>
+            <Title level={3} style={{
+              margin: 0,
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              fontWeight: 600
+            }}>
+              我的收藏
+            </Title>
+          </div>
           <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/')}>
             返回首页
           </Button>
