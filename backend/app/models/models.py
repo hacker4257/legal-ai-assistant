@@ -43,3 +43,36 @@ class SearchHistory(Base):
     filters = Column(JSON)
     results_count = Column(Integer)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class Favorite(Base):
+    """收藏模型"""
+    __tablename__ = "favorites"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, index=True, nullable=False)
+    case_id = Column(Integer, index=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class Note(Base):
+    """笔记模型"""
+    __tablename__ = "notes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, index=True, nullable=False)
+    case_id = Column(Integer, index=True, nullable=False)
+    content = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class CaseAnalysis(Base):
+    """案例分析缓存"""
+    __tablename__ = "case_analysis"
+
+    id = Column(Integer, primary_key=True, index=True)
+    case_id = Column(Integer, unique=True, index=True, nullable=False)
+    analysis_result = Column(JSON, nullable=False)  # 存储完整的分析结果
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

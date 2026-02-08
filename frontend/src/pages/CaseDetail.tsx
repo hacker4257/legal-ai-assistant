@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Layout, Card, Button, Descriptions, Typography, Space, Spin, message, Divider, Collapse, Tag, Alert, Segmented } from 'antd';
-import { ArrowLeftOutlined, ThunderboltOutlined, FileTextOutlined, TeamOutlined, BankOutlined, CheckCircleOutlined, UserOutlined, SafetyOutlined } from '@ant-design/icons';
+import { Layout, Card, Button, Descriptions, Typography, Space, Spin, message, Divider, Collapse, Tag, Alert, Segmented, Dropdown, Input, Modal, List } from 'antd';
+import { ArrowLeftOutlined, ThunderboltOutlined, FileTextOutlined, TeamOutlined, BankOutlined, CheckCircleOutlined, UserOutlined, SafetyOutlined, DownloadOutlined, StarOutlined, StarFilled, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import ReactMarkdown from 'react-markdown';
-import { casesAPI } from '../api';
+import { casesAPI, favoritesAPI } from '../api';
 
 const { Header, Content } = Layout;
 const { Title, Paragraph, Text } = Typography;
@@ -48,12 +48,22 @@ const CaseDetail: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [caseData, setCaseData] = useState<CaseDetail | null>(null);
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [viewMode, setViewMode] = useState<'professional' | 'plain'>('plain'); // 默认显示通俗版
 
+  // 收藏和笔记相关
+  const [isFavorited, setIsFavorited] = useState(false);
+  const [notes, setNotes] = useState<any[]>([]);
+  const [noteModalVisible, setNoteModalVisible] = useState(false);
+  const [noteContent, setNoteContent] = useState('');
+  const [editingNoteId, setEditingNoteId] = useState<number | null>(null);
+
   useEffect(() => {
     fetchCase();
+    checkFavorite();
+    fetchNotes();
   }, [id]);
 
   const fetchCase = async () => {
@@ -64,6 +74,85 @@ const CaseDetail: React.FC = () => {
       message.error(error.response?.data?.detail || '获取案例失败');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const checkFavorite = async () => {
+    try {
+      const response = await favoritesAPI.checkFavorite(Number(id));
+      setIsFavorited(response.data.is_favorited);
+    } catch (error) {
+      console.error('检查收藏状态失败:', error);
+    }
+  };
+
+  const fetchNotes = async () => {
+    try {
+      const response = await favoritesAPI.getNotes(Number(id));
+      setNotes(response.data);
+    } catch (error) {
+      console.error('获取笔记失败:', error);
+    }
+  };
+
+  const handleToggleFavorite = async () => {
+    try {
+      if (isFavorited) {
+        await favoritesAPI.removeFavorite(Number(id));
+        message.success('已取消收藏');
+        setIsFavorited(false);
+      } else {
+        await favoritesAPI.addFavorite(Number(id));
+        message.success('收藏成功');
+        setIsFavorited(true);
+      }
+    } catch (error: any) {
+      message.error(error.response?.data?.detail || '操作失败');
+    }
+  };
+
+  const handleAddNote = () => {
+    setEditingNoteId(null);
+    setNoteContent('');
+    setNoteModalVisible(true);
+  };
+
+  const handleEditNote = (note: any) => {
+    setEditingNoteId(note.id);
+    setNoteContent(note.content);
+    setNoteModalVisible(true);
+  };
+
+  const handleSaveNote = async () => {
+    if (!noteContent.trim()) {
+      message.warning('请输入笔记内容');
+      return;
+    }
+
+    try {
+      if (editingNoteId) {
+        await favoritesAPI.updateNote(editingNoteId, noteContent);
+        message.success('笔记已更新');
+      } else {
+        await favoritesAPI.createNote({ case_id: Number(id), content: noteContent });
+        message.success('笔记已添加');
+      }
+      setNoteModalVisible(false);
+      setNoteContent('');
+      setEditingNoteId(null);
+      fetchNotes();
+    } catch (error: any) {
+      message.error(error.response?.data?.detail || '保存失败');
+    }
+  };
+
+  const handleDeleteNote = async (noteId: number) => {
+    try {
+      await favoritesAPI.deleteNote(noteId);
+      message.success('笔记已删除');
+      fetchNotes();
+    } catch (error: any) {
+      message.error(error.response?.data?.detail || '删除失败');
     }
   };
 
@@ -84,6 +173,40 @@ const CaseDetail: React.FC = () => {
       message.error(error.response?.data?.detail || '分析失败');
     } finally {
       setAnalyzing(false);
+    }
+  };
+
+  const handleExportPDF = async (perspective: 'both' | 'professional' | 'plain') => {
+    if (!analysis) {
+      message.warning('请先进行 AI 分析');
+      return;
+    }
+
+    setExporting(true);
+    try {
+      const response = await casesAPI.exportPDF(Number(id), perspective);
+
+      // 创建下载链接
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+
+      const perspectiveName = {
+        both: '双视角',
+        professional: '专业版',
+        plain: '普通人版'
+      };
+      link.setAttribute('download', `${caseData?.case_number}_${perspectiveName[perspective]}_分析报告.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      message.success('PDF 导出成功！');
+    } catch (error: any) {
+      message.error(error.response?.data?.detail || '导出失败');
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -125,15 +248,68 @@ const CaseDetail: React.FC = () => {
               </div>
 
               <div>
-                <Button
-                  type="primary"
-                  icon={<ThunderboltOutlined />}
-                  onClick={handleAnalyze}
-                  loading={analyzing}
-                  size="large"
-                >
-                  AI 智能分析
-                </Button>
+                <Space>
+                  <Button
+                    type="primary"
+                    icon={<ThunderboltOutlined />}
+                    onClick={handleAnalyze}
+                    loading={analyzing}
+                    size="large"
+                  >
+                    AI 智能分析
+                  </Button>
+
+                  {analysis && (
+                    <>
+                      <Button
+                        icon={isFavorited ? <StarFilled /> : <StarOutlined />}
+                        onClick={handleToggleFavorite}
+                        size="large"
+                        style={{ color: isFavorited ? '#faad14' : undefined }}
+                      >
+                        {isFavorited ? '已收藏' : '收藏'}
+                      </Button>
+
+                      <Button
+                        icon={<EditOutlined />}
+                        onClick={handleAddNote}
+                        size="large"
+                      >
+                        添加笔记
+                      </Button>
+
+                      <Dropdown
+                        menu={{
+                          items: [
+                            {
+                              key: 'both',
+                              label: '导出双视角版',
+                              onClick: () => handleExportPDF('both'),
+                          },
+                          {
+                            key: 'plain',
+                            label: '导出普通人版',
+                            onClick: () => handleExportPDF('plain'),
+                          },
+                          {
+                            key: 'professional',
+                            label: '导出专业版',
+                            onClick: () => handleExportPDF('professional'),
+                          },
+                        ],
+                      }}
+                    >
+                      <Button
+                        icon={<DownloadOutlined />}
+                        loading={exporting}
+                        size="large"
+                      >
+                        导出 PDF
+                      </Button>
+                    </Dropdown>
+                    </>
+                  )}
+                </Space>
               </div>
 
               {analysis && (
@@ -374,6 +550,47 @@ const CaseDetail: React.FC = () => {
                 </Card>
               )}
 
+              {/* 笔记区域 */}
+              {notes.length > 0 && (
+                <Card title={<Space><EditOutlined /> 我的笔记</Space>}>
+                  <List
+                    dataSource={notes}
+                    renderItem={(note: any) => (
+                      <List.Item
+                        actions={[
+                          <Button
+                            type="link"
+                            icon={<EditOutlined />}
+                            onClick={() => handleEditNote(note)}
+                          >
+                            编辑
+                          </Button>,
+                          <Button
+                            type="link"
+                            danger
+                            icon={<DeleteOutlined />}
+                            onClick={() => handleDeleteNote(note.id)}
+                          >
+                            删除
+                          </Button>,
+                        ]}
+                      >
+                        <List.Item.Meta
+                          description={
+                            <div>
+                              <div style={{ marginBottom: 8 }}>{note.content}</div>
+                              <Text type="secondary" style={{ fontSize: 12 }}>
+                                {new Date(note.created_at).toLocaleString('zh-CN')}
+                              </Text>
+                            </div>
+                          }
+                        />
+                      </List.Item>
+                    )}
+                  />
+                </Card>
+              )}
+
               <Collapse defaultActiveKey={[]} ghost>
                 <Panel
                   header={
@@ -394,6 +611,27 @@ const CaseDetail: React.FC = () => {
           </Card>
         </div>
       </Content>
+
+      {/* 笔记模态框 */}
+      <Modal
+        title={editingNoteId ? '编辑笔记' : '添加笔记'}
+        open={noteModalVisible}
+        onOk={handleSaveNote}
+        onCancel={() => {
+          setNoteModalVisible(false);
+          setNoteContent('');
+          setEditingNoteId(null);
+        }}
+        okText="保存"
+        cancelText="取消"
+      >
+        <Input.TextArea
+          rows={6}
+          value={noteContent}
+          onChange={(e) => setNoteContent(e.target.value)}
+          placeholder="输入你的笔记..."
+        />
+      </Modal>
     </Layout>
   );
 };

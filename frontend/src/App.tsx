@@ -5,6 +5,8 @@ import zhCN from 'antd/locale/zh_CN';
 import Login from './pages/Login';
 import Home from './pages/Home';
 import CaseDetail from './pages/CaseDetail';
+import UploadCase from './pages/UploadCase';
+import MyFavorites from './pages/MyFavorites';
 import { useAuthStore } from './store/authStore';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -23,6 +25,22 @@ const App: React.FC = () => {
             element={
               <PrivateRoute>
                 <Home />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/upload"
+            element={
+              <PrivateRoute>
+                <UploadCase />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/favorites"
+            element={
+              <PrivateRoute>
+                <MyFavorites />
               </PrivateRoute>
             }
           />

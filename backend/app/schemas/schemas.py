@@ -90,3 +90,40 @@ class AnalysisResponse(BaseModel):
     judgment_result: str
     judgment_result_plain: Optional[str] = None
     plain_language_tips: Optional[str] = None
+
+
+# 收藏相关
+class FavoriteCreate(BaseModel):
+    case_id: int
+
+
+class FavoriteResponse(BaseModel):
+    id: int
+    user_id: int
+    case_id: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+# 笔记相关
+class NoteCreate(BaseModel):
+    case_id: int
+    content: str
+
+
+class NoteUpdate(BaseModel):
+    content: str
+
+
+class NoteResponse(BaseModel):
+    id: int
+    user_id: int
+    case_id: int
+    content: str
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True

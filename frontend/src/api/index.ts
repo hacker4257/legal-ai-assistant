@@ -59,4 +59,41 @@ export const casesAPI = {
   analyzeCase: (id: number) => api.post(`/api/v1/cases/${id}/analyze`),
 
   createCase: (data: any) => api.post('/api/v1/cases/', data),
+
+  uploadPDF: (file: File, onUploadProgress?: (progressEvent: any) => void) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post('/api/v1/cases/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      onUploadProgress,
+    });
+  },
+
+  exportPDF: (id: number, perspective: 'both' | 'professional' | 'plain' = 'both') => {
+    return api.post(`/api/v1/cases/${id}/export-pdf?perspective=${perspective}`, null, {
+      responseType: 'blob',
+    });
+  },
+};
+
+export const favoritesAPI = {
+  addFavorite: (case_id: number) => api.post('/api/v1/favorites/', { case_id }),
+
+  removeFavorite: (case_id: number) => api.delete(`/api/v1/favorites/${case_id}`),
+
+  getFavorites: () => api.get('/api/v1/favorites/'),
+
+  checkFavorite: (case_id: number) => api.get(`/api/v1/favorites/check/${case_id}`),
+
+  createNote: (data: { case_id: number; content: string }) =>
+    api.post('/api/v1/favorites/notes', data),
+
+  getNotes: (case_id: number) => api.get(`/api/v1/favorites/notes/${case_id}`),
+
+  updateNote: (note_id: number, content: string) =>
+    api.put(`/api/v1/favorites/notes/${note_id}`, { content }),
+
+  deleteNote: (note_id: number) => api.delete(`/api/v1/favorites/notes/${note_id}`),
 };

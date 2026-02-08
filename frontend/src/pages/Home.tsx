@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Layout, Input, Button, Card, List, Typography, Space, Tag, message } from 'antd';
-import { SearchOutlined } from '@ant-design/icons';
+import { SearchOutlined, UploadOutlined, StarOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { casesAPI } from '../api';
 
@@ -49,7 +49,22 @@ const Home: React.FC = () => {
       <Header style={{ background: '#fff', padding: '0 50px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Title level={3} style={{ margin: 0 }}>法律 AI 助手</Title>
-          <Button onClick={() => navigate('/login')}>退出</Button>
+          <Space>
+            <Button
+              type="primary"
+              icon={<UploadOutlined />}
+              onClick={() => navigate('/upload')}
+            >
+              上传文书
+            </Button>
+            <Button
+              icon={<StarOutlined />}
+              onClick={() => navigate('/favorites')}
+            >
+              我的收藏
+            </Button>
+            <Button onClick={() => navigate('/login')}>退出</Button>
+          </Space>
         </div>
       </Header>
 
