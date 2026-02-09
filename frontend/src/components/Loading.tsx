@@ -1,6 +1,7 @@
 import React from 'react';
 import { Spin } from 'antd';
 import { LoadingOutlined } from '@ant-design/icons';
+import theme from '../styles/theme';
 
 interface LoadingProps {
   tip?: string;
@@ -13,20 +14,31 @@ const Loading: React.FC<LoadingProps> = ({
   size = 'large',
   fullscreen = false,
 }) => {
-  const antIcon = <LoadingOutlined style={{ fontSize: size === 'large' ? 48 : 24 }} spin />;
+  const antIcon = (
+    <LoadingOutlined
+      style={{
+        fontSize: size === 'large' ? 48 : 24,
+        color: theme.colors.primary,
+      }}
+      spin
+    />
+  );
 
   if (fullscreen) {
     return (
       <div
         style={{
           display: 'flex',
+          flexDirection: 'column',
           justifyContent: 'center',
           alignItems: 'center',
           minHeight: '100vh',
-          background: 'rgba(255, 255, 255, 0.9)',
+          background: theme.colors.background.secondary,
+          gap: 20,
         }}
       >
-        <Spin indicator={antIcon} tip={tip} size={size} />
+        <Spin indicator={antIcon} size={size} />
+        <span style={{ color: theme.colors.text.secondary, fontSize: 15 }}>{tip}</span>
       </div>
     );
   }
@@ -35,12 +47,15 @@ const Loading: React.FC<LoadingProps> = ({
     <div
       style={{
         display: 'flex',
+        flexDirection: 'column',
         justifyContent: 'center',
         alignItems: 'center',
-        padding: '50px 0',
+        padding: '60px 0',
+        gap: 16,
       }}
     >
-      <Spin indicator={antIcon} tip={tip} size={size} />
+      <Spin indicator={antIcon} size={size} />
+      <span style={{ color: theme.colors.text.secondary, fontSize: 14 }}>{tip}</span>
     </div>
   );
 };

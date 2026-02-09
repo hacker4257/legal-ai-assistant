@@ -1,6 +1,7 @@
 import React from 'react';
 import { Empty, Button } from 'antd';
 import { FileTextOutlined, SearchOutlined, InboxOutlined } from '@ant-design/icons';
+import theme from '../styles/theme';
 
 interface EmptyStateProps {
   type?: 'search' | 'data' | 'upload';
@@ -13,13 +14,14 @@ interface EmptyStateProps {
 
 const EmptyState: React.FC<EmptyStateProps> = ({ type = 'data', description, action }) => {
   const getIcon = () => {
+    const iconStyle = { fontSize: 72, color: theme.colors.border.medium };
     switch (type) {
       case 'search':
-        return <SearchOutlined style={{ fontSize: 64, color: '#d9d9d9' }} />;
+        return <SearchOutlined style={iconStyle} />;
       case 'upload':
-        return <InboxOutlined style={{ fontSize: 64, color: '#d9d9d9' }} />;
+        return <InboxOutlined style={iconStyle} />;
       default:
-        return <FileTextOutlined style={{ fontSize: 64, color: '#d9d9d9' }} />;
+        return <FileTextOutlined style={iconStyle} />;
     }
   };
 
@@ -36,14 +38,34 @@ const EmptyState: React.FC<EmptyStateProps> = ({ type = 'data', description, act
   };
 
   return (
-    <div style={{ padding: '50px 0', textAlign: 'center' }}>
+    <div
+      style={{
+        padding: '60px 0',
+        textAlign: 'center',
+        background: theme.colors.background.tertiary,
+        borderRadius: theme.borderRadius.xlarge,
+      }}
+    >
       <Empty
         image={getIcon()}
-        description={getDescription()}
-        style={{ marginBottom: 24 }}
+        description={
+          <span style={{ color: theme.colors.text.secondary, fontSize: 15 }}>
+            {getDescription()}
+          </span>
+        }
+        style={{ marginBottom: action ? 24 : 0 }}
       >
         {action && (
-          <Button type="primary" onClick={action.onClick}>
+          <Button
+            type="primary"
+            onClick={action.onClick}
+            style={{
+              borderRadius: theme.borderRadius.medium,
+              height: 40,
+              paddingLeft: 24,
+              paddingRight: 24,
+            }}
+          >
             {action.text}
           </Button>
         )}

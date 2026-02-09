@@ -1,5 +1,6 @@
 import React from 'react';
 import { Layout, Typography, Button } from 'antd';
+import { ArrowLeftOutlined, HomeOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import ScaleIcon from './ScaleIcon';
 import theme from '../styles/theme';
@@ -35,9 +36,15 @@ const PageHeader: React.FC<PageHeaderProps> = ({
   return (
     <AntHeader
       style={{
-        background: theme.colors.background.white,
-        padding: '0 50px',
+        background: 'rgba(255, 255, 255, 0.98)',
+        padding: '0 40px',
         boxShadow: theme.shadows.header,
+        backdropFilter: 'blur(12px)',
+        position: 'sticky',
+        top: 0,
+        zIndex: 100,
+        height: 64,
+        lineHeight: '64px',
       }}
     >
       <div
@@ -45,9 +52,20 @@ const PageHeader: React.FC<PageHeaderProps> = ({
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
+          maxWidth: 1400,
+          margin: '0 auto',
+          height: '100%',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            cursor: 'pointer',
+          }}
+          onClick={() => navigate('/')}
+        >
           <div
             style={{
               width: theme.logo.size,
@@ -63,21 +81,30 @@ const PageHeader: React.FC<PageHeaderProps> = ({
             <ScaleIcon style={{ fontSize: theme.logo.fontSize, color: '#fff' }} />
           </div>
           <Title
-            level={3}
+            level={4}
             style={{
               margin: 0,
               ...theme.title,
+              fontSize: 20,
             }}
           >
             {title}
           </Title>
         </div>
 
-        <div style={{ display: 'flex', gap: 12 }}>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           {extra}
           {showBackButton && (
-            <Button onClick={handleBack}>
-              返回{backTo === '/' ? '首页' : ''}
+            <Button
+              icon={backTo === '/' ? <HomeOutlined /> : <ArrowLeftOutlined />}
+              onClick={handleBack}
+              style={{
+                borderRadius: theme.borderRadius.medium,
+                height: 40,
+                border: `1px solid ${theme.colors.border.light}`,
+              }}
+            >
+              {backTo === '/' ? '返回首页' : '返回'}
             </Button>
           )}
         </div>
