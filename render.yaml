@@ -26,6 +26,18 @@ services:
         sync: false  # You'll need to set this manually in Render dashboard
       - key: ANTHROPIC_BASE_URL
         value: https://api.anthropic.com
+      # Qdrant 向量数据库 (使用 Qdrant Cloud 免费版)
+      - key: QDRANT_URL
+        sync: false  # Set to your Qdrant Cloud URL, e.g., https://xxx.qdrant.io
+      - key: QDRANT_API_KEY
+        sync: false  # Qdrant Cloud API Key
+      - key: QDRANT_COLLECTION
+        value: legal_cases
+      - key: EMBEDDING_DIMENSION
+        value: 1024
+      # Voyage AI (可选，用于 embedding)
+      - key: VOYAGE_API_KEY
+        sync: false  # Optional, for better Chinese text embeddings
       - key: APP_NAME
         value: Legal AI Assistant
       - key: DEBUG

@@ -11,6 +11,7 @@ from app.core.config import settings
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, or_
 from app.models.models import Case
+from app.services.vector_service import vector_service
 import json
 
 
@@ -146,11 +147,53 @@ class LegalAnalysisAgent:
             }
 
     async def _search_similar_cases(self, elements: Dict) -> List[Dict]:
-        """工具 2: 搜索相似案例（使用数据库）"""
+        """工具 2: 搜索相似案例（使用向量数据库）
+
+        优先使用语义搜索，失败时回退到关键词搜索
+        """
         case_type = elements.get('case_type', '')
         dispute_points = elements.get('dispute_points', [])
 
-        # 构建搜索查询
+        # 构建搜索查询文本
+        search_text = f"{case_type} {' '.join(dispute_points)}"
+
+        # 尝试使用向量搜索
+        try:
+            if await vector_service.is_available():
+                # 使用语义搜索
+                filters = {}
+                if case_type and case_type != "未知":
+                    filters["case_type"] = case_type
+
+                vector_results = await vector_service.search_similar(
+                    query=search_text,
+                    top_k=5,
+                    filters=filters if filters else None
+                )
+
+                if vector_results:
+                    # 从数据库获取完整信息
+                    case_ids = [r["id"] for r in vector_results]
+                    query = select(Case).where(Case.id.in_(case_ids))
+                    result = await self.db.execute(query)
+                    cases_map = {case.id: case for case in result.scalars().all()}
+
+                    return [
+                        {
+                            'id': r["id"],
+                            'title': cases_map[r["id"]].title if r["id"] in cases_map else r["title"],
+                            'case_number': cases_map[r["id"]].case_number if r["id"] in cases_map else r["case_number"],
+                            'court': cases_map[r["id"]].court if r["id"] in cases_map else r["court"],
+                            'summary': (cases_map[r["id"]].content[:200] + "...") if r["id"] in cases_map else r["content_preview"],
+                            'similarity_score': r["score"]
+                        }
+                        for r in vector_results
+                        if r["id"] in cases_map
+                    ]
+        except Exception as e:
+            print(f"向量搜索失败，回退到关键词搜索: {e}")
+
+        # 回退：关键词搜索
         query = select(Case).limit(5)
 
         # 按案件类型过滤

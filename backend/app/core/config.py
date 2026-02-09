@@ -26,6 +26,15 @@ class Settings(BaseSettings):
     ANTHROPIC_API_KEY: str
     ANTHROPIC_BASE_URL: Optional[str] = None
 
+    # Qdrant 向量数据库
+    QDRANT_URL: str = "http://localhost:6333"
+    QDRANT_API_KEY: Optional[str] = None  # Qdrant Cloud 需要
+    QDRANT_COLLECTION: str = "legal_cases"
+    EMBEDDING_DIMENSION: int = 1024
+
+    # Voyage AI (用于 embedding，可选)
+    VOYAGE_API_KEY: Optional[str] = None
+
     # CORS
     BACKEND_CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:5173"]
 

@@ -19,6 +19,7 @@ from app.services.ai_service import analyze_case
 from app.services.legal_agent import LegalAnalysisAgent
 from app.services.pdf_service import PDFService
 from app.services.pdf_export_service import PDFExportService
+from app.services.vector_service import vector_service
 
 router = APIRouter(prefix="/cases", tags=["案例"])
 
@@ -39,6 +40,21 @@ async def create_case(
     db.add(case)
     await db.commit()
     await db.refresh(case)
+
+    # 异步存储到向量数据库
+    try:
+        await vector_service.upsert_case(
+            case_id=case.id,
+            title=case.title,
+            content=case.content or "",
+            case_type=case.case_type,
+            court=case.court,
+            case_number=case.case_number
+        )
+    except Exception as e:
+        # 向量存储失败不影响主流程
+        import logging
+        logging.warning(f"Failed to store case vector: {e}")
 
     return case
 
@@ -64,42 +80,92 @@ async def search_cases(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """搜索案例"""
+    """搜索案例
+
+    支持两种搜索模式：
+    1. 混合搜索（语义 + 关键词）- 需要 Qdrant 服务
+    2. 关键词搜索 - 回退方案
+
+    混合搜索更智能，能找到语义相关的案例
+    """
     query = search_req.query
     page = search_req.page
     page_size = search_req.page_size
     filters = search_req.filters or {}
 
-    # 构建查询
-    stmt = select(Case)
+    # 尝试使用向量搜索
+    use_vector_search = query and await vector_service.is_available()
 
-    # 关键词搜索（标题或内容）
-    if query:
-        stmt = stmt.where(
-            or_(
-                Case.title.ilike(f"%{query}%"),
-                Case.content.ilike(f"%{query}%")
+    if use_vector_search:
+        try:
+            # 使用混合搜索
+            vector_results = await vector_service.hybrid_search(
+                query=query,
+                top_k=page_size * 2,  # 获取更多结果用于过滤
+                filters=filters,
+                semantic_weight=0.7
             )
-        )
 
-    # 应用过滤器
-    if filters.get("case_type"):
-        stmt = stmt.where(Case.case_type == filters["case_type"])
+            # 获取案例 ID 列表
+            case_ids = [r["id"] for r in vector_results]
 
-    if filters.get("court"):
-        stmt = stmt.where(Case.court.ilike(f"%{filters['court']}%"))
+            if case_ids:
+                # 从数据库获取完整案例信息
+                stmt = select(Case).where(Case.id.in_(case_ids))
+                result = await db.execute(stmt)
+                cases_map = {case.id: case for case in result.scalars().all()}
 
-    # 计算总数
-    count_stmt = select(func.count()).select_from(stmt.subquery())
-    total_result = await db.execute(count_stmt)
-    total = total_result.scalar()
+                # 按向量搜索分数排序
+                cases = []
+                for r in vector_results:
+                    if r["id"] in cases_map:
+                        cases.append(cases_map[r["id"]])
 
-    # 分页
-    stmt = stmt.offset((page - 1) * page_size).limit(page_size)
+                # 分页
+                total = len(cases)
+                start = (page - 1) * page_size
+                end = start + page_size
+                cases = cases[start:end]
+            else:
+                cases = []
+                total = 0
 
-    # 执行查询
-    result = await db.execute(stmt)
-    cases = result.scalars().all()
+        except Exception as e:
+            # 向量搜索失败，回退到关键词搜索
+            import logging
+            logging.warning(f"Vector search failed, falling back to keyword search: {e}")
+            use_vector_search = False
+
+    if not use_vector_search:
+        # 关键词搜索（回退方案）
+        stmt = select(Case)
+
+        if query:
+            stmt = stmt.where(
+                or_(
+                    Case.title.ilike(f"%{query}%"),
+                    Case.content.ilike(f"%{query}%")
+                )
+            )
+
+        # 应用过滤器
+        if filters.get("case_type"):
+            stmt = stmt.where(Case.case_type == filters["case_type"])
+
+        if filters.get("court"):
+            stmt = stmt.where(Case.court.ilike(f"%{filters['court']}%"))
+
+        # 计算总数
+        count_stmt = select(func.count()).select_from(stmt.subquery())
+        total_result = await db.execute(count_stmt)
+        total = total_result.scalar()
+
+        # 分页
+        stmt = stmt.offset((page - 1) * page_size).limit(page_size)
+
+        # 执行查询
+        result = await db.execute(stmt)
+        cases = result.scalars().all()
 
     # 保存搜索历史
     search_history = SearchHistory(
@@ -271,6 +337,21 @@ async def upload_pdf(
         db.add(case)
         await db.commit()
         await db.refresh(case)
+
+        # 异步存储到向量数据库
+        try:
+            await vector_service.upsert_case(
+                case_id=case.id,
+                title=case.title,
+                content=text,
+                case_type=case.case_type,
+                court=case.court,
+                case_number=case.case_number
+            )
+        except Exception as e:
+            # 向量存储失败不影响主流程
+            import logging
+            logging.warning(f"Failed to store uploaded case vector: {e}")
 
         return case
 
