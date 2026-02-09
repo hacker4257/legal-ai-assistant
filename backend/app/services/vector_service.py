@@ -373,14 +373,24 @@ class VectorService:
             return await self.search_similar(query, top_k, filters)
 
     async def is_available(self) -> bool:
-        """检查 Qdrant 服务是否可用
+        """检查 Qdrant 服务是否可用且有数据
 
         Returns:
-            是否可用
+            是否可用且有向量数据
         """
         try:
             client = await self._get_client()
-            client.get_collections()
+            # 检查服务是否可用
+            collections = client.get_collections().collections
+            # 检查 collection 是否存在
+            exists = any(c.name == self.collection_name for c in collections)
+            if not exists:
+                return False
+            # 检查是否有向量数据
+            info = client.get_collection(self.collection_name)
+            if info.points_count == 0:
+                logger.info("Qdrant collection is empty, falling back to keyword search")
+                return False
             return True
         except Exception as e:
             logger.warning(f"Qdrant service unavailable: {e}")

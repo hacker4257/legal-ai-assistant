@@ -36,7 +36,7 @@ class Settings(BaseSettings):
     VOYAGE_API_KEY: Optional[str] = None
 
     # CORS
-    BACKEND_CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:5173"]
+    BACKEND_CORS_ORIGINS: List[str] = ["*"]
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

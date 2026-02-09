@@ -26,7 +26,7 @@ anthropic==0.18.1
 
 # 向量数据库
 qdrant-client==1.7.0
-voyageai==0.2.0
+voyageai>=0.2.1
 
 # PDF 处理
 pdfplumber==0.11.0

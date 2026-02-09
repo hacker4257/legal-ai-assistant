@@ -2,8 +2,6 @@
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any, Optional
-import markdown
-from weasyprint import HTML, CSS
 from io import BytesIO
 
 
@@ -27,6 +25,13 @@ class PDFExportService:
         Returns:
             PDF 字节流
         """
+        # 延迟导入，避免启动时缺少系统库导致失败
+        try:
+            import markdown
+            from weasyprint import HTML, CSS
+        except ImportError as e:
+            raise ImportError(f"PDF 导出需要安装 weasyprint 及其系统依赖: {e}")
+
         # 生成 HTML
         html_content = PDFExportService._generate_html(case_info, analysis, perspective)
 
@@ -44,6 +49,7 @@ class PDFExportService:
         perspective: str
     ) -> str:
         """生成 HTML 内容"""
+        import markdown
 
         # 转换 Markdown 到 HTML（使用简单配置）
         md = markdown.Markdown()
