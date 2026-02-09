@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Layout, Card, Button, Descriptions, Typography, Space, message, Collapse, Tag, Alert, Segmented, Dropdown, Input, Modal, List } from 'antd';
-import { ArrowLeftOutlined, ThunderboltOutlined, FileTextOutlined, TeamOutlined, BankOutlined, CheckCircleOutlined, UserOutlined, DownloadOutlined, StarOutlined, StarFilled, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, ThunderboltOutlined, FileTextOutlined, TeamOutlined, BankOutlined, CheckCircleOutlined, UserOutlined, DownloadOutlined, StarOutlined, StarFilled, EditOutlined, DeleteOutlined, BookOutlined, RobotOutlined, LinkOutlined } from '@ant-design/icons';
 import ReactMarkdown from 'react-markdown';
 import { casesAPI, favoritesAPI } from '../api';
 import ScaleIcon from '../components/ScaleIcon';
@@ -24,6 +24,21 @@ interface CaseDetail {
   legal_basis: any;
 }
 
+interface CitationInfo {
+  type: 'statute' | 'case' | 'interpretation';
+  id: number;
+  title: string;
+  relevance_score: number;
+}
+
+interface AgentMetadata {
+  steps_executed: string[];
+  similar_cases_found: number;
+  legal_basis_found: number;
+  rag_enabled: boolean;
+  statutes_retrieved: number;
+}
+
 interface Analysis {
   summary: string;
   summary_plain?: string;
@@ -44,6 +59,9 @@ interface Analysis {
   judgment_result: string;
   judgment_result_plain?: string;
   plain_language_tips?: string;
+  // RAG 增强字段
+  citations?: CitationInfo[];
+  agent_metadata?: AgentMetadata;
 }
 
 const CaseDetail: React.FC = () => {
@@ -561,6 +579,88 @@ const CaseDetail: React.FC = () => {
                         type="warning"
                         showIcon
                       />
+                    )}
+
+                    {/* RAG 引用溯源 - 显示分析来源 */}
+                    {analysis.citations && analysis.citations.length > 0 && (
+                      <Collapse
+                        style={{ background: '#fff', borderRadius: 8 }}
+                      >
+                        <Panel
+                          header={
+                            <Space>
+                              <LinkOutlined />
+                              <span style={{ fontWeight: 500 }}>
+                                引用来源（{analysis.citations.length} 条）
+                              </span>
+                              {analysis.agent_metadata?.rag_enabled && (
+                                <Tag color="green">RAG 增强</Tag>
+                              )}
+                            </Space>
+                          }
+                          key="citations"
+                        >
+                          <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                            {analysis.citations.map((citation, index) => (
+                              <Card
+                                key={index}
+                                size="small"
+                                style={{
+                                  background: citation.type === 'statute' ? '#f6ffed' :
+                                             citation.type === 'case' ? '#e6f7ff' : '#fff7e6',
+                                  borderLeft: `3px solid ${
+                                    citation.type === 'statute' ? '#52c41a' :
+                                    citation.type === 'case' ? '#1890ff' : '#fa8c16'
+                                  }`,
+                                  marginBottom: 8
+                                }}
+                              >
+                                <Space align="start" style={{ width: '100%' }}>
+                                  <Tag color={
+                                    citation.type === 'statute' ? 'green' :
+                                    citation.type === 'case' ? 'blue' : 'orange'
+                                  }>
+                                    {citation.type === 'statute' ? '法条' :
+                                     citation.type === 'case' ? '案例' : '司法解释'}
+                                  </Tag>
+                                  <div style={{ flex: 1 }}>
+                                    <Text strong>{citation.title}</Text>
+                                    <div style={{ marginTop: 4 }}>
+                                      <Text type="secondary" style={{ fontSize: '12px' }}>
+                                        相关度: {(citation.relevance_score * 100).toFixed(1)}%
+                                      </Text>
+                                    </div>
+                                  </div>
+                                </Space>
+                              </Card>
+                            ))}
+                          </Space>
+                        </Panel>
+                      </Collapse>
+                    )}
+
+                    {/* Agent 执行信息 */}
+                    {analysis.agent_metadata && (
+                      <Card
+                        size="small"
+                        style={{ background: '#fafafa' }}
+                      >
+                        <Space wrap>
+                          <Tag icon={<RobotOutlined />} color="purple">AI Agent</Tag>
+                          {analysis.agent_metadata.rag_enabled && (
+                            <Tag color="green">RAG 知识库检索</Tag>
+                          )}
+                          <Text type="secondary">
+                            检索法条: {analysis.agent_metadata.statutes_retrieved} 条
+                          </Text>
+                          <Text type="secondary">
+                            相似案例: {analysis.agent_metadata.similar_cases_found} 个
+                          </Text>
+                          <Text type="secondary">
+                            执行步骤: {analysis.agent_metadata.steps_executed?.length || 0}
+                          </Text>
+                        </Space>
+                      </Card>
                     )}
                   </Space>
                 </Card>
