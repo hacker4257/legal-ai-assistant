@@ -77,6 +77,23 @@ class AnalysisRequest(BaseModel):
     case_id: int
 
 
+class CitationInfo(BaseModel):
+    """引用信息"""
+    type: str  # statute, case, interpretation
+    id: int
+    title: str
+    relevance_score: float
+
+
+class AgentMetadata(BaseModel):
+    """Agent 执行元数据"""
+    steps_executed: list[str]
+    similar_cases_found: int
+    legal_basis_found: int
+    rag_enabled: bool = False
+    statutes_retrieved: int = 0
+
+
 class AnalysisResponse(BaseModel):
     case_id: int
     summary: str
@@ -90,6 +107,9 @@ class AnalysisResponse(BaseModel):
     judgment_result: str
     judgment_result_plain: Optional[str] = None
     plain_language_tips: Optional[str] = None
+    # RAG 增强字段
+    citations: Optional[list[CitationInfo]] = None
+    agent_metadata: Optional[AgentMetadata] = None
 
 
 # 收藏相关

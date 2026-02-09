@@ -191,13 +191,14 @@ async def analyze_case_endpoint(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """分析案例 - 使用 Agent 进行智能分析
+    """分析案例 - 使用 RAG 增强的 Agent 进行智能分析
 
-    这不是简单的提示词调用，而是一个真正的 Agent：
+    这不是简单的提示词调用，而是一个 RAG 增强的 Agent：
     1. 自动提取案例要素
-    2. 主动搜索相似案例
-    3. 查找相关法律依据
+    2. RAG 检索相关法条（真实法条，非 AI 推断）
+    3. 语义搜索相似案例
     4. 综合所有信息进行深度分析
+    5. 所有引用可追溯验证
 
     ✨ 分析结果会被缓存，避免重复调用 AI API
     """
@@ -222,15 +223,15 @@ async def analyze_case_endpoint(
             **analysis_data
         }
 
-    # 没有缓存，使用 Legal Analysis Agent 进行分析
+    # 没有缓存，使用 Legal Analysis Agent (RAG 增强版) 进行分析
     try:
         # 创建 Agent 实例
         agent = LegalAnalysisAgent(db)
 
-        # Agent 自主执行多步骤分析
+        # Agent 自主执行多步骤分析（包含 RAG 检索）
         analysis = await agent.analyze_case(case.content)
 
-        # 准备返回数据
+        # 准备返回数据（包含引用信息）
         response_data = {
             "summary": analysis.get("summary", ""),
             "summary_plain": analysis.get("summary_plain"),
@@ -242,7 +243,10 @@ async def analyze_case_endpoint(
             "legal_basis_plain": analysis.get("legal_basis_plain"),
             "judgment_result": analysis.get("judgment_result", ""),
             "judgment_result_plain": analysis.get("judgment_result_plain"),
-            "plain_language_tips": analysis.get("plain_language_tips")
+            "plain_language_tips": analysis.get("plain_language_tips"),
+            # RAG 增强字段
+            "citations": analysis.get("citations"),
+            "agent_metadata": analysis.get("agent_metadata")
         }
 
         # 保存到缓存

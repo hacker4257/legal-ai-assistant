@@ -1,28 +1,35 @@
 """
-Legal Analysis Agent - 法律分析智能体
+Legal Analysis Agent - 法律分析智能体 (RAG 增强版)
 
-这是一个真正的 Agent，不仅仅是提示词！
-它能主动使用工具、多步骤执行、自主决策。
+这是一个真正的 Agent，使用 RAG 技术增强分析能力：
+1. 从知识库检索真实法条（非 AI 推断）
+2. 检索相似案例作为参考
+3. 所有引用可追溯验证
 """
 
 from typing import Dict, List, Optional
 from anthropic import AsyncAnthropic
 from app.core.config import settings
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, or_
+from sqlalchemy import select, or_
 from app.models.models import Case
 from app.services.vector_service import vector_service
+from app.services.rag_service import rag_service, RAGContext
+from app.services.knowledge_service import knowledge_service, KnowledgeType
 import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class LegalAnalysisAgent:
-    """法律分析智能体
+    """法律分析智能体 (RAG 增强版)
 
-    这是一个真正的 Agent，具备：
-    1. 工具使用能力（搜索、查询、分析）
-    2. 多步骤执行能力
-    3. 自主决策能力
-    4. 记忆和状态管理
+    核心改进：
+    1. 法条来自真实知识库检索，非 AI 推断
+    2. 相似案例使用语义搜索
+    3. 所有引用带溯源信息
+    4. 分析结果更可靠
     """
 
     def __init__(self, db: AsyncSession):
@@ -36,9 +43,9 @@ class LegalAnalysisAgent:
 
         # Agent 的工具箱
         self.tools = {
-            'search_similar_cases': self._search_similar_cases,
             'extract_legal_elements': self._extract_legal_elements,
-            'find_legal_basis': self._find_legal_basis,
+            'rag_retrieve': self._rag_retrieve,  # 新增：RAG 检索
+            'search_similar_cases': self._search_similar_cases,
             'analyze_judgment': self._analyze_judgment,
         }
 
@@ -46,17 +53,22 @@ class LegalAnalysisAgent:
         self.memory = {
             'case_content': None,
             'extracted_elements': None,
+            'rag_context': None,  # 新增：RAG 上下文
             'similar_cases': [],
             'legal_basis': [],
+            'citations': [],  # 新增：引用追踪
             'analysis_steps': [],
         }
 
     async def analyze_case(self, case_content: str) -> Dict:
-        """主分析流程 - Agent 的决策循环
+        """主分析流程 - RAG 增强版
 
-        这是 Agent 的核心：它会自主决定执行哪些步骤
+        流程：
+        1. 提取关键要素
+        2. RAG 检索（法条 + 案例 + 司法解释）
+        3. 综合分析（基于检索结果）
         """
-        print("🤖 Legal Analysis Agent 启动...")
+        print("🤖 Legal Analysis Agent (RAG Enhanced) 启动...")
 
         # 保存案例内容到记忆
         self.memory['case_content'] = case_content
@@ -67,36 +79,59 @@ class LegalAnalysisAgent:
         self.memory['extracted_elements'] = elements
         self.memory['analysis_steps'].append("提取关键要素")
 
-        # Step 2: 搜索相似案例（使用提取的要素）
-        print("🔍 Step 2: 搜索相似案例...")
-        similar_cases = await self.tools['search_similar_cases'](elements)
-        self.memory['similar_cases'] = similar_cases
-        self.memory['analysis_steps'].append(f"找到 {len(similar_cases)} 个相似案例")
+        # Step 2: RAG 检索（核心改进！）
+        print("🔍 Step 2: RAG 知识库检索...")
+        rag_context = await self.tools['rag_retrieve'](elements, case_content)
+        self.memory['rag_context'] = rag_context
+        self.memory['citations'] = rag_context.citations if rag_context else []
 
-        # Step 3: 查找法律依据
-        print("📚 Step 3: 查找相关法律依据...")
-        legal_basis = await self.tools['find_legal_basis'](elements)
+        # 统计检索结果
+        statutes_count = len(rag_context.statutes) if rag_context else 0
+        cases_count = len(rag_context.cases) if rag_context else 0
+        self.memory['analysis_steps'].append(
+            f"RAG 检索: {statutes_count} 条法条, {cases_count} 个案例"
+        )
+        print(f"   📚 检索到 {statutes_count} 条相关法条")
+        print(f"   📁 检索到 {cases_count} 个相似案例")
+
+        # Step 3: 提取法律依据（从 RAG 结果）
+        legal_basis = self._extract_legal_basis_from_rag(rag_context)
         self.memory['legal_basis'] = legal_basis
-        self.memory['analysis_steps'].append(f"找到 {len(legal_basis)} 条法律依据")
 
-        # Step 4: 综合分析（使用所有收集的信息）
-        print("🧠 Step 4: 综合分析判决...")
+        # Step 4: 提取相似案例（从 RAG 结果）
+        similar_cases = self._extract_cases_from_rag(rag_context)
+        self.memory['similar_cases'] = similar_cases
+
+        # Step 5: 综合分析（使用 RAG 上下文）
+        print("🧠 Step 3: 综合分析判决...")
         final_analysis = await self.tools['analyze_judgment'](
             case_content=case_content,
             elements=elements,
+            rag_context=rag_context,
             similar_cases=similar_cases,
             legal_basis=legal_basis
         )
 
         print("✅ 分析完成！")
 
-        # 返回完整的分析结果
+        # 返回完整的分析结果（包含引用信息）
         return {
             **final_analysis,
+            'citations': [
+                {
+                    'type': c.source_type,
+                    'id': c.source_id,
+                    'title': c.title,
+                    'relevance_score': round(c.relevance_score, 3)
+                }
+                for c in self.memory['citations']
+            ],
             'agent_metadata': {
                 'steps_executed': self.memory['analysis_steps'],
                 'similar_cases_found': len(similar_cases),
                 'legal_basis_found': len(legal_basis),
+                'rag_enabled': True,
+                'statutes_retrieved': statutes_count,
             }
         }
 
@@ -104,20 +139,22 @@ class LegalAnalysisAgent:
         """工具 1: 提取案例关键要素"""
         prompt = f"""请从以下判决书中提取关键要素，以 JSON 格式返回：
 
-{case_content[:2000]}  # 只用前2000字提取要素
+{case_content[:2000]}
 
 请提取：
 1. 案件类型（民事/刑事/行政）
 2. 主要当事人
 3. 核心争议点
 4. 涉及的法律关系
+5. 关键法律关键词（用于检索法条）
 
 返回 JSON 格式：
 {{
   "case_type": "案件类型",
   "parties": ["当事人1", "当事人2"],
   "dispute_points": ["争议点1", "争议点2"],
-  "legal_relations": ["法律关系1"]
+  "legal_relations": ["法律关系1"],
+  "search_keywords": ["关键词1", "关键词2", "关键词3"]
 }}
 """
 
@@ -129,7 +166,6 @@ class LegalAnalysisAgent:
 
         try:
             text = response.content[0].text
-            # 提取 JSON
             if "```json" in text:
                 json_str = text.split("```json")[1].split("```")[0].strip()
             elif "```" in text:
@@ -143,24 +179,84 @@ class LegalAnalysisAgent:
                 "case_type": "未知",
                 "parties": [],
                 "dispute_points": [],
-                "legal_relations": []
+                "legal_relations": [],
+                "search_keywords": []
             }
 
-    async def _search_similar_cases(self, elements: Dict) -> List[Dict]:
-        """工具 2: 搜索相似案例（使用向量数据库）
+    async def _rag_retrieve(self, elements: Dict, case_content: str) -> Optional[RAGContext]:
+        """工具 2: RAG 知识库检索
 
-        优先使用语义搜索，失败时回退到关键词搜索
+        从法条库、案例库、司法解释库中检索相关内容
         """
+        # 构建检索查询
         case_type = elements.get('case_type', '')
         dispute_points = elements.get('dispute_points', [])
+        legal_relations = elements.get('legal_relations', [])
+        search_keywords = elements.get('search_keywords', [])
 
-        # 构建搜索查询文本
+        # 组合检索词
+        query_parts = [case_type] + dispute_points + legal_relations + search_keywords
+        query = ' '.join([p for p in query_parts if p and p != '未知'])
+
+        if not query:
+            query = case_content[:500]  # 回退到案例内容
+
+        try:
+            # 使用 RAG 服务检索
+            rag_context = await rag_service.retrieve(
+                query=query,
+                case_content=case_content,
+                top_k=5,
+                include_cases=True,
+                include_statutes=True,
+                include_interpretations=True
+            )
+            return rag_context
+        except Exception as e:
+            logger.error(f"RAG retrieval failed: {e}")
+            return RAGContext(query=query)
+
+    def _extract_legal_basis_from_rag(self, rag_context: Optional[RAGContext]) -> List[Dict]:
+        """从 RAG 结果中提取法律依据"""
+        if not rag_context or not rag_context.statutes:
+            return []
+
+        return [
+            {
+                'id': r.id,
+                'law_name': r.metadata.get('law_name', ''),
+                'article_number': r.metadata.get('article_number', ''),
+                'content': r.content,
+                'score': r.score
+            }
+            for r in rag_context.statutes
+        ]
+
+    def _extract_cases_from_rag(self, rag_context: Optional[RAGContext]) -> List[Dict]:
+        """从 RAG 结果中提取相似案例"""
+        if not rag_context or not rag_context.cases:
+            return []
+
+        return [
+            {
+                'id': r.id,
+                'title': r.metadata.get('title', ''),
+                'case_number': r.metadata.get('case_number', ''),
+                'court': r.metadata.get('court', ''),
+                'summary': r.content[:200] + '...',
+                'similarity_score': r.score
+            }
+            for r in rag_context.cases
+        ]
+
+    async def _search_similar_cases(self, elements: Dict) -> List[Dict]:
+        """工具 3: 搜索相似案例（备用，当 RAG 不可用时）"""
+        case_type = elements.get('case_type', '')
+        dispute_points = elements.get('dispute_points', [])
         search_text = f"{case_type} {' '.join(dispute_points)}"
 
-        # 尝试使用向量搜索
         try:
             if await vector_service.is_available():
-                # 使用语义搜索
                 filters = {}
                 if case_type and case_type != "未知":
                     filters["case_type"] = case_type
@@ -172,7 +268,6 @@ class LegalAnalysisAgent:
                 )
 
                 if vector_results:
-                    # 从数据库获取完整信息
                     case_ids = [r["id"] for r in vector_results]
                     query = select(Case).where(Case.id.in_(case_ids))
                     result = await self.db.execute(query)
@@ -191,24 +286,12 @@ class LegalAnalysisAgent:
                         if r["id"] in cases_map
                     ]
         except Exception as e:
-            print(f"向量搜索失败，回退到关键词搜索: {e}")
+            logger.warning(f"Vector search failed: {e}")
 
         # 回退：关键词搜索
         query = select(Case).limit(5)
-
-        # 按案件类型过滤
         if case_type and case_type != "未知":
             query = query.where(Case.case_type.ilike(f"%{case_type}%"))
-
-        # 按争议点搜索
-        if dispute_points:
-            search_terms = " ".join(dispute_points)
-            query = query.where(
-                or_(
-                    Case.title.ilike(f"%{search_terms}%"),
-                    Case.content.ilike(f"%{search_terms}%")
-                )
-            )
 
         result = await self.db.execute(query)
         cases = result.scalars().all()
@@ -224,71 +307,36 @@ class LegalAnalysisAgent:
             for case in cases
         ]
 
-    async def _find_legal_basis(self, elements: Dict) -> List[str]:
-        """工具 3: 查找相关法律依据
-
-        这里可以：
-        1. 调用法律数据库 API
-        2. 使用 AI 推断相关法律
-        3. 从相似案例中提取
-
-        目前使用 AI 推断
-        """
-        case_type = elements.get('case_type', '')
-        legal_relations = elements.get('legal_relations', [])
-
-        prompt = f"""根据以下信息，列出可能适用的中国法律条文：
-
-案件类型：{case_type}
-法律关系：{', '.join(legal_relations)}
-
-请列出 3-5 条最相关的法律依据，格式：
-["法律名称 第X条", "法律名称 第Y条", ...]
-
-只返回 JSON 数组，不要其他内容。
-"""
-
-        response = await self.client.messages.create(
-            model="claude-sonnet-4-5-20250929",
-            max_tokens=500,
-            messages=[{"role": "user", "content": prompt}]
-        )
-
-        try:
-            text = response.content[0].text
-            if "```json" in text:
-                json_str = text.split("```json")[1].split("```")[0].strip()
-            elif "```" in text:
-                json_str = text.split("```")[1].split("```")[0].strip()
-            elif "[" in text:
-                json_str = text[text.find("["):text.rfind("]")+1]
-            else:
-                json_str = text
-
-            return json.loads(json_str)
-        except:
-            return ["相关法律条文待查询"]
-
     async def _analyze_judgment(
         self,
         case_content: str,
         elements: Dict,
+        rag_context: Optional[RAGContext],
         similar_cases: List[Dict],
-        legal_basis: List[str]
+        legal_basis: List[Dict]
     ) -> Dict:
-        """工具 4: 综合分析判决
+        """工具 4: 综合分析判决 (RAG 增强版)
 
-        这是最终的分析步骤，整合所有之前收集的信息
-        同时提供专业版和通俗版两种解读
+        关键改进：使用 RAG 检索的真实法条，而非 AI 推断
         """
 
-        # 构建增强的提示词（包含 Agent 收集的所有信息）
+        # 构建法条引用文本（来自真实检索）
+        if legal_basis:
+            legal_basis_text = "\n".join([
+                f"【{lb['law_name']} {lb['article_number']}】\n{lb['content']}"
+                for lb in legal_basis[:5]
+            ])
+        else:
+            legal_basis_text = "（未检索到相关法条，请基于法律知识分析）"
+
+        # 构建相似案例文本
         similar_cases_text = "\n".join([
-            f"- {case['title']} ({case['case_number']})"
+            f"- {case['title']} ({case.get('case_number', '')})"
             for case in similar_cases[:3]
         ])
 
-        legal_basis_text = "\n".join([f"- {law}" for law in legal_basis])
+        # RAG 上下文
+        rag_context_text = rag_context.context_text if rag_context else ""
 
         prompt = f"""你是一位资深法律专家。请深度分析以下判决书，并提供两个版本的解读。
 
@@ -299,31 +347,26 @@ class LegalAnalysisAgent:
 【判决书内容】
 {case_content}
 
-【Agent 已收集的信息】
+【RAG 检索到的相关知识】
+{rag_context_text if rag_context_text else '暂无检索结果'}
+
+【案件要素分析】
 案件类型：{elements.get('case_type')}
 争议焦点：{', '.join(elements.get('dispute_points', []))}
+法律关系：{', '.join(elements.get('legal_relations', []))}
 
-相似案例参考：
+【⚠️ 重要：以下法条来自知识库检索，请优先引用这些真实法条】
+{legal_basis_text}
+
+【相似案例参考】
 {similar_cases_text if similar_cases_text else '暂无'}
 
-相关法律依据：
-{legal_basis_text if legal_basis_text else '待查询'}
-
 【分析要求】
-请提供两个版本的分析。注意：通俗版必须用完全不同的语言风格！
+1. **法律依据必须优先使用上面检索到的真实法条**
+2. 如果检索到的法条不够，可以补充其他相关法条，但要标注"（补充）"
+3. 提供专业版和通俗版两种解读
 
-**专业版（给律师和法律专业人士）：**
-- 使用专业法律术语
-- 详细的法律分析
-- 引用具体法条
-
-**通俗版（给普通人）：**
-- 用大白话，像跟朋友聊天一样
-- 避免法律术语，或者用括号解释
-- 说明"谁赢了"、"为什么"、"结果是什么"
-- 用生活化的例子类比
-
-请严格按照以下 JSON 格式返回（不要有任何其他文字）：
+请严格按照以下 JSON 格式返回：
 
 ```json
 {{
@@ -343,58 +386,40 @@ class LegalAnalysisAgent:
   }},
 
   "legal_reasoning": "判决理由分析（专业版，法律术语）",
-  "legal_reasoning_plain": "法院为什么这么判？（通俗版，用简单的逻辑解释，比如：因为A做了B，所以法院认为C）",
+  "legal_reasoning_plain": "法院为什么这么判？（通俗版，用简单的逻辑解释）",
 
-  "legal_basis": ["《中华人民共和国民法典》第X条：【原文内容】", "《中华人民共和国民法典》第Y条：【原文内容】"],
+  "legal_basis": ["《法律名称》第X条：【条文内容】", "..."],
   "legal_basis_plain": [
-    "《中华人民共和国民法典》第X条：【原文内容】\n\n这条说的是XXX：用大白话解释这条法律的意思，比如'这条说的是财产怎么分：夫妻离婚时，婚后挣的钱、买的东西原则上要平分。但法院也会考虑实际情况，比如谁带孩子、谁更需要照顾等，尽量公平合理地分配。'",
-    "《中华人民共和国民法典》第Y条：【原文内容】\n\n这条说的是YYY：用大白话解释..."
+    "《法律名称》第X条：【条文内容】\\n\\n这条说的是XXX：【大白话解释】",
+    "..."
   ],
 
   "judgment_result": "裁判结果（专业版）",
-  "judgment_result_plain": "最终结果：谁赢了？要赔多少钱？（通俗版，直接说结果）",
+  "judgment_result_plain": "最终结果：谁赢了？要赔多少钱？（通俗版）",
 
   "similar_cases_reference": "相似案例的参考价值",
 
-  "plain_language_tips": "给普通人的建议：从这个案子能学到什么？遇到类似情况该怎么办？"
+  "plain_language_tips": "给普通人的建议：从这个案子能学到什么？"
 }}
-```
-
-记住：summary_plain、key_elements_plain、legal_reasoning_plain、legal_basis_plain、judgment_result_plain 这些字段必须用完全不同的语言风格，就像你在给一个完全不懂法律的朋友解释一样！
-
-**特别注意 legal_basis_plain 的格式：**
-每条法律依据必须包含：
-1. 法律条文原文（完整引用）
-2. 换行后加上通俗解释，格式为："这条说的是XXX：【大白话解释】"
-
-示例：
-```
-"《中华人民共和国民法典》第一千零八十七条：离婚时，夫妻的共同财产由双方协议处理；协议不成的，由人民法院根据财产的具体情况，按照照顾子女、女方和无过错方权益的原则判决。
-
-这条说的是财产怎么分：夫妻离婚时，婚后挣的钱、买的东西原则上要平分。但法院也会考虑实际情况，比如谁带孩子、谁更需要照顾等，尽量公平合理地分配。"
 ```
 """
 
         response = await self.client.messages.create(
             model="claude-sonnet-4-5-20250929",
-            max_tokens=8192,  # 增加 token 限制
+            max_tokens=8192,
             messages=[{"role": "user", "content": prompt}]
         )
 
         try:
             text = response.content[0].text
-
-            # 调试：打印原始响应
             print(f"AI 原始响应长度: {len(text)}")
-            print(f"AI 响应前500字符: {text[:500]}")
 
-            # 更强大的 JSON 提取
+            # JSON 提取
             if "```json" in text:
                 json_str = text.split("```json")[1].split("```")[0].strip()
             elif "```" in text:
                 json_str = text.split("```")[1].split("```")[0].strip()
             else:
-                # 尝试找到 JSON 对象
                 start = text.find('{')
                 end = text.rfind('}')
                 if start != -1 and end != -1:
@@ -404,46 +429,47 @@ class LegalAnalysisAgent:
 
             result = json.loads(json_str)
 
-            # 调试：检查关键字段
-            print(f"解析成功！字段: {list(result.keys())}")
-            print(f"summary_plain 存在: {'summary_plain' in result}")
-            if 'summary_plain' in result:
-                print(f"summary_plain 内容: {result['summary_plain'][:100]}...")
-
             # 确保所有必需字段都存在
-            if 'summary_plain' not in result or not result['summary_plain']:
-                print("⚠️ summary_plain 缺失或为空，使用 summary")
-                result['summary_plain'] = result.get('summary', '')
-            if 'key_elements_plain' not in result:
-                result['key_elements_plain'] = {}
-            if 'legal_reasoning_plain' not in result:
-                result['legal_reasoning_plain'] = result.get('legal_reasoning', '')
-            if 'legal_basis_plain' not in result:
-                result['legal_basis_plain'] = result.get('legal_basis', [])
-            if 'judgment_result_plain' not in result:
-                result['judgment_result_plain'] = result.get('judgment_result', '')
-            if 'plain_language_tips' not in result:
-                result['plain_language_tips'] = ''
+            self._ensure_required_fields(result, elements, legal_basis, similar_cases)
 
             return result
+
         except Exception as e:
-            print(f"JSON 解析失败: {e}")
-            print(f"原始文本: {text[:500]}...")
-            return {
-                "summary": text[:200] if text else "分析失败",
-                "summary_plain": "抱歉，AI 返回的格式有问题，无法解析",
-                "key_elements": elements,
-                "key_elements_plain": {
-                    "who": "解析失败",
-                    "what_happened": "解析失败",
-                    "what_they_want": "解析失败"
-                },
-                "legal_reasoning": text if text else str(e),
-                "legal_reasoning_plain": "抱歉，分析结果解析失败",
-                "legal_basis": legal_basis,
-                "legal_basis_plain": ["解析失败"],
-                "judgment_result": "",
-                "judgment_result_plain": "解析失败",
-                "similar_cases_reference": f"找到 {len(similar_cases)} 个相似案例",
-                "plain_language_tips": ""
-            }
+            logger.error(f"JSON 解析失败: {e}")
+            return self._fallback_result(text if 'text' in dir() else str(e), elements, legal_basis, similar_cases)
+
+    def _ensure_required_fields(self, result: Dict, elements: Dict, legal_basis: List, similar_cases: List):
+        """确保结果包含所有必需字段"""
+        if 'summary_plain' not in result or not result['summary_plain']:
+            result['summary_plain'] = result.get('summary', '')
+        if 'key_elements_plain' not in result:
+            result['key_elements_plain'] = {}
+        if 'legal_reasoning_plain' not in result:
+            result['legal_reasoning_plain'] = result.get('legal_reasoning', '')
+        if 'legal_basis_plain' not in result:
+            result['legal_basis_plain'] = result.get('legal_basis', [])
+        if 'judgment_result_plain' not in result:
+            result['judgment_result_plain'] = result.get('judgment_result', '')
+        if 'plain_language_tips' not in result:
+            result['plain_language_tips'] = ''
+
+    def _fallback_result(self, text: str, elements: Dict, legal_basis: List, similar_cases: List) -> Dict:
+        """解析失败时的回退结果"""
+        return {
+            "summary": text[:200] if text else "分析失败",
+            "summary_plain": "抱歉，AI 返回的格式有问题，无法解析",
+            "key_elements": elements,
+            "key_elements_plain": {
+                "who": "解析失败",
+                "what_happened": "解析失败",
+                "what_they_want": "解析失败"
+            },
+            "legal_reasoning": text if text else "解析失败",
+            "legal_reasoning_plain": "抱歉，分析结果解析失败",
+            "legal_basis": [f"{lb['law_name']} {lb['article_number']}" for lb in legal_basis] if legal_basis else [],
+            "legal_basis_plain": ["解析失败"],
+            "judgment_result": "",
+            "judgment_result_plain": "解析失败",
+            "similar_cases_reference": f"找到 {len(similar_cases)} 个相似案例",
+            "plain_language_tips": ""
+        }
