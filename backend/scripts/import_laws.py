@@ -224,7 +224,13 @@ async def verify_import():
         "劳动合同解除",
         "离婚财产分割",
         "违约责任赔偿",
-        "加班工资"
+        "加班工资",
+        "交通事故赔偿",
+        "醉酒驾驶",
+        "七天无理由退货",
+        "诈骗罪",
+        "正当防卫",
+        "医疗费误工费"
     ]
 
     from qdrant_client.http import models
